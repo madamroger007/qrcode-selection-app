@@ -87,7 +87,7 @@ Before installing from source you need the following tools. If you are using the
 
 ### Option A — Download the installer (recommended)
 
-1. Go to the [**Releases**](https://github.com/your-username/your-repo/releases) page.
+1. Go to the [**Releases**](https://github.com/madamroger007/qrcode-selection-app/releases) page.
 2. Download the latest `.msi` or `.exe` installer for your platform.
 3. Run the installer and follow the on-screen prompts.
 4. Launch **QR Code Reader** from the Start Menu or desktop shortcut.
