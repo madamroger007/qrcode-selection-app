@@ -1,20 +1,18 @@
 name: Release
 
 # Triggered when a version tag is pushed (e.g. v1.0.0).
-# The CI workflow must have already passed on the same commit; this workflow
-# does NOT re-run tests — it relies on branch protection rules requiring the
-# CI checks to pass before a tag can be pushed to main.
+# Builds native installers for Windows, macOS, and Linux, then
+# attaches them as assets to a GitHub Release draft.
 on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
-  # ─── Re-run tests as a hard gate before building ──────────────────────────
+  # ─── Gate: must pass before any build starts ──────────────────────────────
   test-frontend:
     name: Frontend tests (release gate)
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +32,6 @@ jobs:
   test-rust:
     name: Rust tests (release gate)
     runs-on: windows-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -48,23 +45,43 @@ jobs:
         working-directory: src-tauri
         run: cargo test --all-features
 
-  # ─── Build and publish the Tauri desktop app ──────────────────────────────
+  # ─── Build installers for every platform ──────────────────────────────────
   build-release:
-    name: Build — ${{ matrix.platform }}
+    name: Build — ${{ matrix.name }}
     needs: [test-frontend, test-rust]
+    permissions:
+      contents: write   # required to create the release and upload assets
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: windows-latest
-            args: ""
+          # Windows — produces .msi + .exe (NSIS)
+          - name: Windows x64
+            runner: windows-latest
+            args: --target x86_64-pc-windows-msvc
 
-    runs-on: ${{ matrix.platform }}
+          # macOS Intel — produces .dmg + .app
+          - name: macOS Intel
+            runner: macos-13
+            args: --target x86_64-apple-darwin
+
+          # macOS Apple Silicon — produces .dmg + .app
+          - name: macOS Apple Silicon
+            runner: macos-latest
+            args: --target aarch64-apple-darwin
+
+          # Linux — produces .deb + .rpm + AppImage
+          - name: Linux x64
+            runner: ubuntu-22.04
+            args: --target x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Node + pnpm ──────────────────────────────────────────────────────
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -76,18 +93,42 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      # ── Rust ─────────────────────────────────────────────────────────────
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.args == '--target aarch64-apple-darwin' && 'aarch64-apple-darwin' || '' }}
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
+      # ── Linux system deps (WebKitGTK + screenshot crate deps) ─────────────
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libxtst-dev \
+            libx11-dev \
+            libxext-dev \
+            libxrandr-dev \
+            libxss-dev \
+            libglib2.0-dev \
+            libgtk-3-dev
+
+      # ── Frontend ──────────────────────────────────────────────────────────
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Tauri app
+      # ── Tauri build + GitHub Release upload ───────────────────────────────
+      - name: Build Tauri app and upload release assets
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,7 +136,27 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "QR Code Reader ${{ github.ref_name }}"
           releaseBody: |
-            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+            ## QR Code Reader ${{ github.ref_name }}
+
+            Scan QR codes directly from your screen — no camera required.
+
+            ### What's new
+            See the full [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+            ### Installation
+
+            | Platform | File to download |
+            |---|---|
+            | Windows | `_x64-setup.exe` (recommended) or `_x64_en-US.msi` |
+            | macOS Intel | `.dmg` for `x86_64` |
+            | macOS Apple Silicon | `.dmg` for `aarch64` |
+            | Linux (Debian/Ubuntu) | `.deb` |
+            | Linux (Fedora/RHEL) | `.rpm` |
+            | Linux (universal) | `.AppImage` |
+
+            > **Windows**: WebView2 Runtime is required (pre-installed on Windows 10 1803+ and Windows 11).  
+            > **macOS**: You may need to right-click → Open the first time due to Gatekeeper.  
+            > **Linux**: For AppImage, make it executable first: `chmod +x *.AppImage && ./*.AppImage`
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
