@@ -35,9 +35,9 @@ The overlay selection window runs in a **second WebView** (a separate Tauri wind
 
 ---
 
-## Tauri Window Configuration
+## Tauri Window Configuration (`src-tauri/tauri.conf.json`)
 
-### Main Window (`tauri.conf.json`)
+### Main Window
 ```json
 {
   "label": "main",
@@ -53,13 +53,13 @@ The overlay selection window runs in a **second WebView** (a separate Tauri wind
 ```json
 {
   "label": "overlay",
+  "url": "/overlay",
   "transparent": true,
   "decorations": false,
   "alwaysOnTop": true,
   "fullscreen": true,
   "skipTaskbar": true,
-  "visible": false,
-  "url": "overlay.html"
+  "visible": false
 }
 ```
 
@@ -94,24 +94,33 @@ pub fn decode_qr_from_bytes(image_bytes: &[u8]) -> Result<Vec<String>, String>
 
 ### `window_manager.rs`
 ```rust
-pub fn open_url(url: String) -> Result<(), String>
+pub fn open_url(app_handle: &tauri::AppHandle, url: String) -> Result<(), String>
 ```
-- Delegates to Tauri's `shell::open` for the system default browser.
+- Uses `tauri_plugin_opener::OpenerExt` to open URLs in the system default browser.
+- Returns `Err(String)` with a descriptive message on failure.
 
-### `lib.rs` / `main.rs` — Tauri Commands
+### `lib.rs` — Tauri Commands
 ```rust
 #[tauri::command]
-async fn capture_region(region: CaptureRegion) -> Result<Vec<u8>, String>
+fn capture_region(region: CaptureRegion) -> Result<Vec<u8>, String>
 
 #[tauri::command]
 async fn decode_qr(image_bytes: Vec<u8>) -> Result<Vec<String>, String>
-// Wrapped in tokio::time::timeout(Duration::from_secs(30), ...)
+// Runs in tokio::task::spawn_blocking wrapped in tokio::time::timeout(30s)
 // Returns Err("QR decoding timed out after 30 seconds") on expiry
 
 #[tauri::command]
-async fn open_url(url: String) -> Result<(), String>
+fn open_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String>
+
+#[tauri::command]
+fn show_overlay(app_handle: tauri::AppHandle) -> Result<(), String>
+// Shows the overlay window and gives it focus
+
+#[tauri::command]
+fn hide_overlay(app_handle: tauri::AppHandle) -> Result<(), String>
+// Imperatively hides the overlay window
 ```
-Plugins registered: `tauri_plugin_clipboard_manager::init()`, `tauri_plugin_shell::init()`.
+Plugins registered: `tauri_plugin_opener::init()`, `tauri_plugin_shell::init()`, `tauri_plugin_clipboard_manager::init()`.
 
 ---
 
@@ -119,27 +128,42 @@ Plugins registered: `tauri_plugin_clipboard_manager::init()`, `tauri_plugin_shel
 
 | Crate | Version | Purpose |
 |---|---|---|
-| `rxing` | `0.5` | Pure-Rust ZXing QR decoder |
+| `rxing` | `0.9` | Pure-Rust ZXing QR decoder |
 | `screenshots` | `0.8` | Cross-platform screen capture |
 | `image` | `0.25` | PNG decode for rxing input |
-| `tokio` | `1` (features: full) | Async runtime, timeout support |
+| `tokio` | `1` (features: full) | Async runtime, timeout, spawn_blocking |
 | `tauri-plugin-clipboard-manager` | `2` | Clipboard write |
-| `tauri-plugin-shell` | `2` | Open URLs in browser |
+| `tauri-plugin-shell` | `2` | Shell integration |
+| `tauri-plugin-opener` | `2` | Open URLs in default browser |
+| `serde` + `serde_json` | `1` | IPC serialization |
 | `proptest` | `1` (dev) | Property-based tests |
+| `qrcode` | `0.14` (dev) | Generate QR PNG fixtures for tests |
 
 ---
 
-## Frontend State Model (`appState.ts`)
+## Frontend State Model (`src/lib/stores/appState.ts`)
 
 ```typescript
-type ProcessingState = 'idle' | 'loading' | 'success' | 'error';
-type CapturePhase = 'idle' | 'selecting' | 'capturing' | 'decoding';
+export interface QrResult {
+  text: string;
+}
 
-interface AppState {
+export type CapturePhase =
+  | 'idle'       // nothing happening
+  | 'selecting'  // overlay is open, user is drawing
+  | 'captured';  // region captured, decode in progress or done
+
+export type ProcessingState =
+  | 'idle'
+  | 'loading'
+  | 'success'
+  | 'error';
+
+export interface AppState {
   capturePhase: CapturePhase;
   processingState: ProcessingState;
   previewImageUrl: string | null;
-  results: string[];
+  results: QrResult[];
   errorMessage: string | null;
 }
 ```
@@ -150,71 +174,80 @@ Initial state: `{ capturePhase: 'idle', processingState: 'idle', previewImageUrl
 
 | Helper | Effect |
 |---|---|
-| `startCapture()` | `capturePhase → 'selecting'` |
-| `setPreview(url)` | sets `previewImageUrl`, `capturePhase → 'capturing'` |
-| `setLoading()` | `processingState → 'loading'`, `capturePhase → 'decoding'` |
-| `setResults(r)` | `results → r`, `processingState → 'success'`, `capturePhase → 'idle'` |
-| `setError(msg)` | `errorMessage → msg`, `processingState → 'error'`, `capturePhase → 'idle'` |
-| `resetToIdle()` | resets all fields to initial values |
+| `startCapture()` | Full reset + `capturePhase → 'selecting'` |
+| `setPreview(url)` | `previewImageUrl → url`, `capturePhase → 'captured'` |
+| `setLoading()` | `processingState → 'loading'` |
+| `setResults(r)` | `results → r`, `processingState → 'success'` |
+| `setError(msg)` | `errorMessage → msg`, `processingState → 'error'` |
+| `resetToIdle()` | Resets all fields to initial values |
 
 ---
 
 ## Frontend Components
 
 ### `MainWindow.svelte`
-Root component. Subscribes to `appState`. Renders:
-- "Capture QR Code" button (disabled when `processingState === 'loading'`)
-- Loading spinner when `capturePhase === 'decoding'`
-- Error message when `processingState === 'error'`
-- Preview image of the captured region
-- `<ResultDisplay>` for each decoded result
-- Orchestrates the full workflow: show overlay → receive region → invoke `capture_region` → invoke `decode_qr` → update store
+Root component. Uses Svelte 5 runes (`$derived`, `$effect`). Renders:
+- **Capture QR** button — disabled when `processingState === 'loading'`; hidden while `capturePhase === 'selecting'` (replaced by a status hint)
+- **Reset** button — shown whenever `capturePhase !== 'idle'`
+- Preview `<img>` of the captured region (shown when `previewImageUrl` is set)
+- `<ResultDisplay />` for decoded results, loading spinner, and error state
+
+Orchestrates the full workflow:
+1. `handleCapture()` — hides main window → 150 ms delay → `invoke("show_overlay")`
+2. On `region-selected` event — `restoreMainWindow()` → `invoke("capture_region")` → build preview blob URL → `invoke("decode_qr")` → `setResults()`
+3. On `region-cancelled` event — `restoreMainWindow()` → `resetToIdle()`
+4. Object URLs are revoked via `$effect` when `previewImageUrl` changes
+
+> **Main window hide/show**: The main window hides itself before showing the overlay so it does not obstruct the selection. It restores itself (`show()` + `setFocus()`) as soon as the overlay emits any event. Requires `core:window:allow-hide` and `core:window:allow-show` in `capabilities/default.json`.
 
 ### `OverlayWindow.svelte`
-Fullscreen, transparent Svelte component for the overlay window. Responsibilities:
+Fullscreen, transparent component for the overlay window. Responsibilities:
 - Canvas-based crosshair cursor and real-time selection rectangle rendering
-- Mouse event handling: `mousedown` (anchor), `mousemove` (resize rect + show dimensions), `mouseup` (emit region + close)
-- Keyboard handler: `ESC` key cancels and closes overlay
-- Emits a Tauri event (`region-selected`) with `{ x, y, width, height }` payload on mouseup
-- Emits a Tauri event (`capture-cancelled`) on ESC
-- Uses `window.__TAURI__.window` APIs to hide itself after selection
+- Mouse event handling: `mousedown` (anchor), `mousemove` (resize rect + show dimensions), `mouseup` (emit region + hide)
+- Keyboard handler: `Escape` cancels and hides overlay
+- Emits Tauri event `region-selected` with `{ x, y, width, height }` on mouseup
+- Emits Tauri event `region-cancelled` on Escape
+- Hides itself via `getCurrentWindow().hide()` after emitting either event
 
 ### `ResultDisplay.svelte`
-Props: `result: string` (a single decoded text value).
-- Displays the decoded text
-- Detects if text starts with `http://` or `https://`; if so, renders an "Open URL" button that calls `invoke('open_url', { url: result })`
-- Renders `<CopyButton text={result} />`
+Reads `processingState`, `results`, and `errorMessage` directly from `appState` store (no props). Renders:
+- Loading spinner when `processingState === 'loading'`
+- Error box when `processingState === 'error'`
+- "No QR codes found." when `processingState === 'success'` and `results` is empty
+- Result cards when `processingState === 'success'` and `results` has items
+  - Each card shows decoded text, a `<CopyButton>`, and an "Open" button for URLs
 
 ### `CopyButton.svelte`
-Props: `text: string`.
-- Calls `invoke('plugin:clipboard-manager|write_text', { text })` on click (or via `@tauri-apps/plugin-clipboard-manager` JS API)
-- State machine: `idle → copying → copied | error`
-- Shows "Copied!" for 1500 ms then reverts to idle
-- Shows error feedback if clipboard write fails
+Props: `text: string`. Uses `writeText` from `@tauri-apps/plugin-clipboard-manager`.
+- State machine: `idle → copied | error → idle` (2-second revert timer)
+- Label changes: idle → **Copy**, copied → **Copied!**, error → **Failed**
+- Rapid double-click restarts the revert timer cleanly
 
 ---
 
 ## Overlay Window Lifecycle
 
 ```
-User clicks "Capture QR Code"
-  → MainWindow calls Tauri window API to show overlay window
-  → OverlayWindow becomes visible (fullscreen, transparent, always-on-top)
+User clicks "Capture QR"
+  → startCapture() (store reset)
+  → getCurrentWindow().hide()          ← main window hides itself
+  → setTimeout(150ms)
+  → invoke("show_overlay")             ← overlay becomes visible
 
 User drags a region
   → OverlayWindow renders selection rect with real-time dimensions
 
 User releases mouse
-  → OverlayWindow emits 'region-selected' event { x, y, width, height }
+  → OverlayWindow emits 'region-selected' { x, y, width, height }
   → OverlayWindow hides itself
-  → MainWindow receives event, calls invoke('capture_region', region)
-  → MainWindow calls invoke('decode_qr', { imageBytes })
-  → MainWindow updates appState with results or error
+  → MainWindow: restoreMainWindow() → handleRegionSelected()
+     → invoke("capture_region") → build preview blob URL (setPreview)
+     → invoke("decode_qr")      → setResults() or setError()
 
-User presses ESC
-  → OverlayWindow emits 'capture-cancelled'
+User presses Escape
+  → OverlayWindow emits 'region-cancelled'
   → OverlayWindow hides itself
-  → MainWindow resets appState to idle
+  → MainWindow: restoreMainWindow() → resetToIdle()
 ```
 
 ---
@@ -222,13 +255,17 @@ User presses ESC
 ## Tauri Capabilities (`src-tauri/capabilities/`)
 
 ### `default.json` (main window)
+- `core:default`
+- `opener:default`
 - `clipboard-manager:allow-write-text`
 - `shell:allow-open`
-- Window show/hide permissions
+- `core:window:allow-hide`
+- `core:window:allow-show`
 
 ### `overlay.json` (overlay window)
-- Permissions scoped to the overlay window label
-- Window hide permission so the overlay can close itself
+- `core:default`
+- `core:window:allow-show`
+- `core:window:allow-hide`
 
 ---
 
@@ -236,10 +273,23 @@ User presses ESC
 
 | Command | Direction | Input | Output |
 |---|---|---|---|
-| `capture_region` | Frontend → Rust | `{ x, y, width, height }` | `Vec<u8>` (PNG bytes) or error |
+| `capture_region` | Frontend → Rust | `{ region: { x, y, width, height } }` | `number[]` (PNG bytes) or error |
 | `decode_qr` | Frontend → Rust | `{ imageBytes: number[] }` | `string[]` (decoded texts) or error |
 | `open_url` | Frontend → Rust | `{ url: string }` | `void` or error |
+| `show_overlay` | Frontend → Rust | — | `void` or error |
+| `hide_overlay` | Frontend → Rust | — | `void` or error |
 | `plugin:clipboard-manager\|write_text` | Frontend → Plugin | `{ text: string }` | `void` or error |
+
+---
+
+## UI Theme
+
+- Background: `linear-gradient(135deg, #1B2CC1 0%, #1A1953 100%)` fixed to viewport
+- Primary text: `#FEFAF3`
+- Capture button: `#FEFAF3` background / `#1A1953` text (inverted for contrast)
+- Result cards: frosted glass — `rgba(254,250,243,0.07)` fill + `backdrop-filter: blur(8px)`
+- Copied state: `#86efac` (soft green); Error state: `#fca5a5` (soft red)
+- No CSS preprocessor — plain scoped `<style>` blocks per component
 
 ---
 
@@ -248,11 +298,17 @@ User presses ESC
 ### Rust (unit + property-based)
 - `screen_capture`: coordinate math for region crop; error path when screenshots crate fails
 - `qr_decoder`: single QR fixture, multi-QR fixture, no-QR image, corrupt bytes
-- `proptest`: property-based tests for coordinate and decode edge cases
+- `lib.rs` timeout tests: 1 ms timeout on a 2 s blocking task → confirms error path; 30 s timeout on real QR → confirms success path
+- `proptest_tests.rs`: property-based tests for coordinate and decode edge cases
 
 ### Frontend (Vitest + @testing-library/svelte)
-- `appState` store: verify each action helper transitions state correctly
-- `CopyButton.svelte`: mock Tauri IPC; verify copied/error states and revert timing
-- `ResultDisplay.svelte`: verify URL detection, Open URL button presence, CopyButton rendering
-- `OverlayWindow.svelte`: selection logic (coordinate calculation, ESC cancel)
-- `OverlayWindow` lifecycle: integration test for overlay show/hide sequencing
+- `appState` store: every action helper transitions state correctly; `resetToIdle` cleans cross-test state
+- `CopyButton.svelte`: mock `writeText`; verify copied/error states and 2 s revert
+- `ResultDisplay.svelte`: URL detection, Open button presence, CopyButton rendering
+- `OverlayWindow.svelte`: selection coordinate calculation, Escape cancel
+- `OverlayLifecycle.test.ts`: integration test for overlay show/hide event sequencing
+
+### CI
+- Frontend tests run on `ubuntu-latest` via `pnpm check` + `pnpm test` (Vitest `--run`)
+- Rust tests run on `windows-latest` via `cargo test --all-features` (required for `screenshots` crate)
+- Both suites are re-run as a hard gate in `release.yml` before any build

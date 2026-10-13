@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, onDestroy } from "svelte";
 
   import ResultDisplay from "$lib/components/ResultDisplay.svelte";
@@ -37,12 +38,29 @@
     await invoke("show_overlay");
   }
 
+  // ----- Restore the main window after overlay closes -----
+  async function restoreMainWindow(): Promise<void> {
+    try {
+      const win = getCurrentWindow();
+      await win.show();
+      await win.setFocus();
+    } catch {
+      // Non-critical — window restore failure shouldn't block the capture flow
+    }
+  }
+
   // ----- Handle the "Capture QR" button -----
   async function handleCapture(): Promise<void> {
     startCapture();
     try {
+      // Hide the main window first so it doesn't obstruct the overlay selection
+      const win = getCurrentWindow();
+      await win.hide();
+      // Small delay to let the OS fully composite the hide before the overlay appears
+      await new Promise((r) => setTimeout(r, 150));
       await showOverlay();
     } catch (err) {
+      await restoreMainWindow();
       setError(`Failed to open selection overlay: ${String(err)}`);
     }
   }
@@ -95,13 +113,14 @@
     unlistenRegionSelected = await listen<Region>(
       "region-selected",
       (event) => {
-        handleRegionSelected(event.payload);
+        // Restore main window first, then process the region
+        restoreMainWindow().then(() => handleRegionSelected(event.payload));
       },
     );
 
     unlistenRegionCancelled = await listen("region-cancelled", () => {
-      // User pressed ESC or cancelled without selecting — return to idle
-      resetToIdle();
+      // User pressed ESC or cancelled without selecting — restore window and return to idle
+      restoreMainWindow().then(() => resetToIdle());
     });
   });
 
