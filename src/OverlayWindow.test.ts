@@ -13,11 +13,15 @@ vi.mock('@tauri-apps/api/event', () => ({
   emit: (...args: unknown[]) => mockEmit(...args),
 }));
 
-// Mock getCurrentWindow().hide() — the overlay calls this after every selection
-// or cancellation.
+// Mock getCurrentWindow().hide() and .onFocusChanged() — the overlay calls both.
+// onFocusChanged must return a Promise<UnlistenFn> matching the real Tauri API.
 const mockHide = vi.fn();
+const mockOnFocusChanged = vi.fn(() => Promise.resolve(() => { }));
 vi.mock('@tauri-apps/api/window', () => ({
-  getCurrentWindow: () => ({ hide: mockHide }),
+  getCurrentWindow: () => ({
+    hide: mockHide,
+    onFocusChanged: mockOnFocusChanged,
+  }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -100,6 +104,7 @@ describe('OverlayWindow', () => {
   beforeEach(() => {
     mockEmit.mockResolvedValue(undefined);
     mockHide.mockResolvedValue(undefined);
+    mockOnFocusChanged.mockReturnValue(Promise.resolve(() => { }));
   });
 
   afterEach(() => {
