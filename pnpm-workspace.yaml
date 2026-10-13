@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: false
+  optipng-bin: set this to true or false
+  sharp: set this to true or false
+  zopflipng-bin: set this to true or false

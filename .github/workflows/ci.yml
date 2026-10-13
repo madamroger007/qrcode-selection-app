@@ -1,0 +1,67 @@
+name: CI
+
+# Run on every push and pull request.
+# This workflow must pass before a release build is triggered.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # ─── Frontend tests (Vitest + jsdom) ──────────────────────────────────────
+  test-frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check (svelte-check)
+        run: pnpm check
+
+      - name: Run Vitest
+        run: pnpm test
+
+  # ─── Rust tests (cargo test) ──────────────────────────────────────────────
+  # Run on Windows because the screenshots crate and screen-capture tests
+  # target Windows APIs (this is a Windows desktop app).
+  test-rust:
+    name: Rust tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Tauri system dependencies (WebView2)
+        # WebView2 is pre-installed on windows-latest GitHub-hosted runners.
+        # This step is a no-op placeholder so the intent is explicit.
+        run: echo "WebView2 is available on windows-latest."
+
+      - name: Run Rust tests
+        working-directory: src-tauri
+        run: cargo test --all-features

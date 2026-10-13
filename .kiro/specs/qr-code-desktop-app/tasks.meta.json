@@ -1,0 +1,371 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.2 Add Rust crate dependencies to `src-tauri/Cargo.toml`": [
+      {
+        "executionId": "7aaa3393-dac7-489b-91c2-415e4750d9bc",
+        "chatSessionId": "sess_38ccb975-3651-4019-8b3d-bd24869ba717",
+        "timestamp": 1791853052254
+      },
+      {
+        "executionId": "7aaa3393-dac7-489b-91c2-415e4750d9bc",
+        "chatSessionId": "sess_38ccb975-3651-4019-8b3d-bd24869ba717",
+        "timestamp": 1791853095400
+      }
+    ],
+    "1.3 Add frontend npm dependencies": [
+      {
+        "executionId": "7aaa3393-dac7-489b-91c2-415e4750d9bc",
+        "chatSessionId": "sess_38ccb975-3651-4019-8b3d-bd24869ba717",
+        "timestamp": 1791853055454
+      },
+      {
+        "executionId": "7aaa3393-dac7-489b-91c2-415e4750d9bc",
+        "chatSessionId": "sess_38ccb975-3651-4019-8b3d-bd24869ba717",
+        "timestamp": 1791853098421
+      }
+    ],
+    "2.1 Configure `tauri.conf.json` for main and overlay windows": [
+      {
+        "executionId": "e31daaeb-7138-4550-b9a7-361828c733fd",
+        "chatSessionId": "sess_5976f1c6-f321-4362-ac12-429eb8b83396",
+        "timestamp": 1791853159858
+      },
+      {
+        "executionId": "e31daaeb-7138-4550-b9a7-361828c733fd",
+        "chatSessionId": "sess_5976f1c6-f321-4362-ac12-429eb8b83396",
+        "timestamp": 1791853504402
+      }
+    ],
+    "2.2 Configure plugin permissions in `src-tauri/capabilities/`": [
+      {
+        "executionId": "e31daaeb-7138-4550-b9a7-361828c733fd",
+        "chatSessionId": "sess_5976f1c6-f321-4362-ac12-429eb8b83396",
+        "timestamp": 1791853162644
+      },
+      {
+        "executionId": "e31daaeb-7138-4550-b9a7-361828c733fd",
+        "chatSessionId": "sess_5976f1c6-f321-4362-ac12-429eb8b83396",
+        "timestamp": 1791853504500
+      }
+    ],
+    "2. Configure Tauri windows and permissions": [
+      {
+        "executionId": "e31daaeb-7138-4550-b9a7-361828c733fd",
+        "chatSessionId": "sess_5976f1c6-f321-4362-ac12-429eb8b83396",
+        "timestamp": 1791853504551
+      }
+    ],
+    "3.1 Implement `screen_capture` module (`src-tauri/src/screen_capture.rs`)": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791853757941
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791854552635
+      }
+    ],
+    "3.3 Implement `qr_decoder` module (`src-tauri/src/qr_decoder.rs`)": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791853760865
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791854555841
+      }
+    ],
+    "3.5 Implement `window_manager` module (`src-tauri/src/window_manager.rs`)": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791853765403
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791854558707
+      }
+    ],
+    "3.2 Write unit tests for `screen_capture` module": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791854561921
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791855019746
+      }
+    ],
+    "3.4 Write unit tests for `qr_decoder` module": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791854564776
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791855022976
+      }
+    ],
+    "3.6 Register Tauri commands and initialize plugins in `src-tauri/src/main.rs`": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791854567894
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791855027297
+      }
+    ],
+    "3.7 Write property-based tests for Rust backend (proptest)": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791855030994
+      },
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791855197361
+      }
+    ],
+    "3. Implement Rust backend modules": [
+      {
+        "executionId": "1aa8b5ab-54f8-4fbe-b639-3a1d07105b18",
+        "chatSessionId": "sess_a0a2c043-2568-43e2-8e5f-0b6a742bcb77",
+        "timestamp": 1791855197447
+      }
+    ],
+    "4. Checkpoint -- Verify Rust backend compiles and passes tests": [
+      {
+        "executionId": "2e92d8da-be0f-4090-adcf-472e4d1e6588",
+        "chatSessionId": "sess_4033e10f-45e2-4c25-b07a-5623486f1b42",
+        "timestamp": 1791855340071
+      },
+      {
+        "executionId": "2e92d8da-be0f-4090-adcf-472e4d1e6588",
+        "chatSessionId": "sess_4033e10f-45e2-4c25-b07a-5623486f1b42",
+        "timestamp": 1791855562217
+      }
+    ],
+    "5. Implement Svelte state store": [
+      {
+        "executionId": "9d734a60-82d4-4ece-8b8c-fad4e73ceb1c",
+        "chatSessionId": "sess_03cb7f4f-8d90-4d18-a600-ec550921c5cd",
+        "timestamp": 1791855642449
+      },
+      {
+        "executionId": "9d734a60-82d4-4ece-8b8c-fad4e73ceb1c",
+        "chatSessionId": "sess_03cb7f4f-8d90-4d18-a600-ec550921c5cd",
+        "timestamp": 1791856181270
+      }
+    ],
+    "5.1 Create `appState` store (`src/lib/stores/appState.ts`)": [
+      {
+        "executionId": "2795d5e6-6147-48ff-bf08-48cb947bba51",
+        "chatSessionId": "sess_7d12caf5-7be8-4f3a-893d-69b71791f572",
+        "timestamp": 1791856346767
+      }
+    ],
+    "6.1 Create `src/lib/components/CopyButton.svelte`": [
+      {
+        "executionId": "2795d5e6-6147-48ff-bf08-48cb947bba51",
+        "chatSessionId": "sess_7d12caf5-7be8-4f3a-893d-69b71791f572",
+        "timestamp": 1791856349988
+      },
+      {
+        "executionId": "2795d5e6-6147-48ff-bf08-48cb947bba51",
+        "chatSessionId": "sess_7d12caf5-7be8-4f3a-893d-69b71791f572",
+        "timestamp": 1791856894876
+      }
+    ],
+    "6.2 Write Vitest unit tests for `CopyButton.svelte`": [
+      {
+        "executionId": "2795d5e6-6147-48ff-bf08-48cb947bba51",
+        "chatSessionId": "sess_7d12caf5-7be8-4f3a-893d-69b71791f572",
+        "timestamp": 1791856901175
+      },
+      {
+        "executionId": "2b0011a1-b9eb-4482-b705-c6ebb1fd9c17",
+        "chatSessionId": "sess_31061653-6d56-4671-84e5-655cb8f66a48",
+        "timestamp": 1791884374923
+      },
+      {
+        "executionId": "2b0011a1-b9eb-4482-b705-c6ebb1fd9c17",
+        "chatSessionId": "sess_31061653-6d56-4671-84e5-655cb8f66a48",
+        "timestamp": 1791884438891
+      }
+    ],
+    "7.1 Create `src/lib/components/ResultDisplay.svelte`": [
+      {
+        "executionId": "77e54093-f8ee-4de7-90e4-8371e5a4df2d",
+        "chatSessionId": "sess_c6b05d9e-78a0-4cf2-b5ec-ed9a7ab4192b",
+        "timestamp": 1791858143873
+      },
+      {
+        "executionId": "77e54093-f8ee-4de7-90e4-8371e5a4df2d",
+        "chatSessionId": "sess_c6b05d9e-78a0-4cf2-b5ec-ed9a7ab4192b",
+        "timestamp": 1791859375204
+      }
+    ],
+    "8.1 Create `src/OverlayWindow.svelte` (entry for the overlay Tauri window)": [
+      {
+        "executionId": "1c1f45e3-4ee0-4b74-a996-a8516613c3b1",
+        "chatSessionId": "sess_06521f9f-e2f1-4108-b632-6da803015e28",
+        "timestamp": 1791859436013
+      },
+      {
+        "executionId": "4ccb4eb9-cab2-4fec-a233-2609236c9775",
+        "chatSessionId": "sess_5f2486ee-4be5-428e-8c72-a46cb53edf6d",
+        "timestamp": 1791883679027
+      },
+      {
+        "executionId": "4ccb4eb9-cab2-4fec-a233-2609236c9775",
+        "chatSessionId": "sess_5f2486ee-4be5-428e-8c72-a46cb53edf6d",
+        "timestamp": 1791883925188
+      }
+    ],
+    "9.1 Create `src/MainWindow.svelte` (or update generated `App.svelte` entry)": [
+      {
+        "executionId": "0be0d2e1-7fa5-4647-b73e-3a039643ffdd",
+        "chatSessionId": "sess_2f98db75-3a33-4d25-9e86-6d19420bd427",
+        "timestamp": 1791883999474
+      },
+      {
+        "executionId": "0be0d2e1-7fa5-4647-b73e-3a039643ffdd",
+        "chatSessionId": "sess_2f98db75-3a33-4d25-9e86-6d19420bd427",
+        "timestamp": 1791884184677
+      }
+    ],
+    "9. Implement `MainWindow.svelte` root component": [
+      {
+        "executionId": "0be0d2e1-7fa5-4647-b73e-3a039643ffdd",
+        "chatSessionId": "sess_2f98db75-3a33-4d25-9e86-6d19420bd427",
+        "timestamp": 1791884184721
+      }
+    ],
+    "5.2 Write Vitest unit tests for `appState` store": [
+      {
+        "executionId": "6c2ba0b2-b921-484b-ae78-7181ae8033bb",
+        "chatSessionId": "sess_2b412815-379c-4dee-80fa-72148493c5f7",
+        "timestamp": 1791884244313
+      },
+      {
+        "executionId": "6c2ba0b2-b921-484b-ae78-7181ae8033bb",
+        "chatSessionId": "sess_2b412815-379c-4dee-80fa-72148493c5f7",
+        "timestamp": 1791884322034
+      }
+    ],
+    "6. Implement `CopyButton.svelte` component": [
+      {
+        "executionId": "2b0011a1-b9eb-4482-b705-c6ebb1fd9c17",
+        "chatSessionId": "sess_31061653-6d56-4671-84e5-655cb8f66a48",
+        "timestamp": 1791884438931
+      }
+    ],
+    "7.2 Write Vitest unit tests for `ResultDisplay.svelte`": [
+      {
+        "executionId": "3d51054f-874a-4b4a-8258-3c87c1b53c1b",
+        "chatSessionId": "sess_a44ddafa-c2f8-4442-96fc-653129f7485c",
+        "timestamp": 1791884487888
+      },
+      {
+        "executionId": "3d51054f-874a-4b4a-8258-3c87c1b53c1b",
+        "chatSessionId": "sess_a44ddafa-c2f8-4442-96fc-653129f7485c",
+        "timestamp": 1791884627791
+      }
+    ],
+    "7. Implement `ResultDisplay.svelte` component": [
+      {
+        "executionId": "3d51054f-874a-4b4a-8258-3c87c1b53c1b",
+        "chatSessionId": "sess_a44ddafa-c2f8-4442-96fc-653129f7485c",
+        "timestamp": 1791884627839
+      }
+    ],
+    "8.2 Write Vitest unit tests for OverlayWindow selection logic": [
+      {
+        "executionId": "094f94f2-306b-45e7-bf18-b5ef703a6c4a",
+        "chatSessionId": "sess_15074e1f-8a8e-4cf0-b270-9f4b8b500f29",
+        "timestamp": 1791884651852
+      },
+      {
+        "executionId": "094f94f2-306b-45e7-bf18-b5ef703a6c4a",
+        "chatSessionId": "sess_15074e1f-8a8e-4cf0-b270-9f4b8b500f29",
+        "timestamp": 1791884755914
+      }
+    ],
+    "8. Implement `OverlayWindow.svelte` component": [
+      {
+        "executionId": "094f94f2-306b-45e7-bf18-b5ef703a6c4a",
+        "chatSessionId": "sess_15074e1f-8a8e-4cf0-b270-9f4b8b500f29",
+        "timestamp": 1791884755976
+      }
+    ],
+    "11.1 Implement overlay window show/hide via Tauri window management": [
+      {
+        "executionId": "c8b00fd4-3d94-47d7-943c-ea5f1a24d522",
+        "chatSessionId": "sess_854dcdcc-865c-445e-95ca-d5c7d70f5e92",
+        "timestamp": 1791884787834
+      },
+      {
+        "executionId": "c8b00fd4-3d94-47d7-943c-ea5f1a24d522",
+        "chatSessionId": "sess_854dcdcc-865c-445e-95ca-d5c7d70f5e92",
+        "timestamp": 1791884920048
+      }
+    ],
+    "11.2 Write integration test for overlay window lifecycle": [
+      {
+        "executionId": "f5607fc5-6c0b-4190-858d-f2df4bc08132",
+        "chatSessionId": "sess_bac15b2c-99a8-44ef-ae97-06f8547f587e",
+        "timestamp": 1791884942983
+      },
+      {
+        "executionId": "f5607fc5-6c0b-4190-858d-f2df4bc08132",
+        "chatSessionId": "sess_bac15b2c-99a8-44ef-ae97-06f8547f587e",
+        "timestamp": 1791885820158
+      }
+    ],
+    "11. Wire Tauri event system and overlay window lifecycle": [
+      {
+        "executionId": "f5607fc5-6c0b-4190-858d-f2df4bc08132",
+        "chatSessionId": "sess_bac15b2c-99a8-44ef-ae97-06f8547f587e",
+        "timestamp": 1791885820193
+      }
+    ],
+    "12.1 Add error handling for `capture_region` IPC failure in `MainWindow.svelte`": [
+      {
+        "executionId": "c50b57c8-5fc3-41a6-b5c3-506b1b181040",
+        "chatSessionId": "sess_aeccce34-9a92-4c9d-a39a-82ad518df628",
+        "timestamp": 1791885838128
+      },
+      {
+        "executionId": "c50b57c8-5fc3-41a6-b5c3-506b1b181040",
+        "chatSessionId": "sess_aeccce34-9a92-4c9d-a39a-82ad518df628",
+        "timestamp": 1791885931413
+      }
+    ],
+    "12.2 Verify timeout path for `decode_qr`": [
+      {
+        "executionId": "92edfdea-ee2e-4e12-9568-769cca8a2e7e",
+        "chatSessionId": "sess_2e80795f-045e-4fa7-9f5a-369dc9912a3b",
+        "timestamp": 1791885996385
+      },
+      {
+        "executionId": "92edfdea-ee2e-4e12-9568-769cca8a2e7e",
+        "chatSessionId": "sess_2e80795f-045e-4fa7-9f5a-369dc9912a3b",
+        "timestamp": 1791886271434
+      }
+    ]
+  }
+}
