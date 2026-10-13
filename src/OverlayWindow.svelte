@@ -177,7 +177,7 @@
 <div
   class="overlay"
   role="application"
-  aria-label="Screen region selector. Click and drag to select a region. Press Escape to cancel."
+  aria-label="Screen region selector. Click and drag to select a region. Press ESC to cancel."
   onmousedown={handleMouseDown}
 >
   <!-- Hint tooltip -->

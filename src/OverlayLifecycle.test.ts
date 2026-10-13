@@ -63,12 +63,18 @@ vi.mock('@tauri-apps/api/core', () => ({
 // `getCurrentWindow().hide()` — called by OverlayWindow after selection/cancel
 const mockHide = vi.fn();
 
+// `getCurrentWindow().show()` and `.setFocus()` — called by MainWindow.restoreMainWindow()
+const mockShow = vi.fn();
+const mockSetFocus = vi.fn();
+
 // `getCurrentWindow().onFocusChanged()` — called by OverlayWindow $effect
 const mockOnFocusChanged = vi.fn((_cb: unknown) => Promise.resolve(vi.fn()));
 
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
     hide: mockHide,
+    show: mockShow,
+    setFocus: mockSetFocus,
     onFocusChanged: mockOnFocusChanged,
   }),
 }));
@@ -138,6 +144,8 @@ describe('Overlay window lifecycle integration', () => {
 
     mockEmit.mockResolvedValue(undefined);
     mockHide.mockResolvedValue(undefined);
+    mockShow.mockResolvedValue(undefined);
+    mockSetFocus.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -149,10 +157,10 @@ describe('Overlay window lifecycle integration', () => {
   it('invokes show_overlay when the "Capture QR" button is clicked', async () => {
     const { getByRole } = render(MainWindow);
     const captureBtn = getByRole('button', { name: /Capture screen region to scan for QR codes/i });
-
     await fireEvent.click(captureBtn);
-
-    expect(mockInvoke).toHaveBeenCalledWith('show_overlay');
+    await vi.waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('show_overlay');
+    });
   });
 
   it('transitions appState capturePhase to "selecting" when capture starts', async () => {
@@ -211,6 +219,18 @@ describe('Overlay window lifecycle integration', () => {
   });
 
   it('transitions appState to "captured" after MainWindow receives region-selected', async () => {
+    // Make capture_region pause so we can observe the 'loading' state before it resolves
+    let resolveCaptureRegion: (value: number[]) => void;
+    const captureRegionPromise = new Promise<number[]>((resolve) => {
+      resolveCaptureRegion = resolve;
+    });
+    mockInvoke.mockImplementation((command: string) => {
+      if (command === 'show_overlay') return Promise.resolve();
+      if (command === 'capture_region') return captureRegionPromise;
+      if (command === 'decode_qr') return Promise.resolve([]);
+      return Promise.resolve();
+    });
+
     // MainWindow registers "region-selected" listener on mount
     render(MainWindow);
 
@@ -222,10 +242,13 @@ describe('Overlay window lifecycle integration', () => {
     // Simulate the overlay emitting region-selected
     simulateTauriEvent('region-selected', { x: 50, y: 60, width: 200, height: 150 });
 
-    // MainWindow calls setLoading() synchronously, then invokes capture_region
+    // MainWindow calls setLoading() before invoking capture_region
     await vi.waitFor(() => {
       expect(get(appState).processingState).toBe('loading');
     });
+
+    // Unblock capture_region so the test can clean up
+    resolveCaptureRegion!([]);
   });
 
   it('invokes capture_region with the emitted coordinates after region-selected', async () => {
@@ -332,8 +355,11 @@ describe('Overlay window lifecycle integration', () => {
       'button[aria-label="Capture screen region to scan for QR codes"]',
     )!;
     await fireEvent.click(captureBtn);
-    expect(mockInvoke).toHaveBeenCalledWith('show_overlay');
-    expect(get(appState).capturePhase).toBe('selecting');
+    await vi.waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith('show_overlay');
+      expect(get(appState).capturePhase).toBe('selecting');
+    },
+    )
 
     // Wait for onMount listeners to register
     await vi.waitFor(() => {

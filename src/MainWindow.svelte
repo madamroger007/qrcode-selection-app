@@ -212,7 +212,13 @@
     font-size: 16px;
     line-height: 1.5;
     color: #fefaf3;
-    background: linear-gradient(135deg, #1b2cc1 0%, #1a1953 100%);
+    background: #0b0130;
+    background: linear-gradient(
+      296deg,
+      rgba(11, 1, 48, 1) 17%,
+      rgba(6, 6, 46, 1) 50%,
+      rgba(6, 4, 26, 1) 88%
+    );
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
