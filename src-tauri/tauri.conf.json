@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "QR Code Reader",
+  "productName": "QR Code Selector",
   "version": "1.0.0",
   "identifier": "com.adams.qr-code-reader",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "QR Code Reader",
+        "title": "QR Code Selector",
         "width": 900,
         "height": 650,
         "minWidth": 800,

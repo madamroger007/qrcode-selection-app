@@ -41,7 +41,7 @@ The overlay selection window runs in a **second WebView** (a separate Tauri wind
 ```json
 {
   "label": "main",
-  "title": "QR Code Reader",
+  "title": "QR Code Selector",
   "width": 900,
   "height": 650,
   "minWidth": 800,

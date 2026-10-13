@@ -27,7 +27,7 @@ Implement a Tauri v2 + Svelte desktop application that captures a screen region 
 
 - [x] 2. Configure Tauri windows and permissions
   - [x] 2.1 Configure `tauri.conf.json` for main and overlay windows
-    - Set main window: `label:"main"`, `title:"QR Code Reader"`, `width:900`, `height:650`, `minWidth:800`, `minHeight:600`
+    - Set main window: `label:"main"`, `title:"QR Code Selector"`, `width:900`, `height:650`, `minWidth:800`, `minHeight:600`
     - Add overlay window: `label:"overlay"`, `transparent:true`, `decorations:false`, `alwaysOnTop:true`, `fullscreen:true`, `skipTaskbar:true`, `visible:false`, `url:"overlay.html"`
     - _Requirements: 1.1, 2.1_
 

@@ -134,9 +134,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "QR Code Reader ${{ github.ref_name }}"
+          releaseName: "QR Code Selector ${{ github.ref_name }}"
           releaseBody: |
-            ## QR Code Reader ${{ github.ref_name }}
+            ## QR Code Selector ${{ github.ref_name }}
 
             Scan QR codes directly from your screen — no camera required.
 

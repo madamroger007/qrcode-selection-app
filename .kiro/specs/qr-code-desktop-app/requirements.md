@@ -9,7 +9,7 @@ A cross-platform desktop application built with Tauri v2 and Svelte that allows 
 ## Requirement 1: Application Shell
 
 ### 1.1
-The application MUST launch as a native desktop window titled "QR Code Reader" with a minimum size of 800×600 pixels and a default size of 900×650 pixels.
+The application MUST launch as a native desktop window titled "QR Code Selector" with a minimum size of 800×600 pixels and a default size of 900×650 pixels.
 
 ### 1.2
 The application MUST be built with Tauri v2 as the native shell and Svelte (TypeScript) as the frontend framework.

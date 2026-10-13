@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **QR Code Reader** are documented here.  
+All notable changes to **QR Code Selector** are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
@@ -36,7 +36,7 @@ Initial public release. 🎉
 - Decoded results that begin with `http://` or `https://` automatically gain an **Open** button that launches the URL in the system default browser.
 
 #### Application Shell
-- Native desktop window — title **"QR Code Reader"**, minimum size 800 × 600 px, default size 900 × 650 px.
+- Native desktop window — title **"QR Code Selector"**, minimum size 800 × 600 px, default size 900 × 650 px.
 - All system-level operations (screen capture, QR decode, clipboard, browser open) run in the Rust backend over Tauri IPC — the renderer never touches native APIs directly.
 - Every IPC failure surfaces a human-readable error message in the UI; the app never crashes or fails silently.
 - **Reset** button returns the app to idle from any state.

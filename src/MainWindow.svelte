@@ -121,9 +121,9 @@
   });
 </script>
 
-<main class="main-window" aria-label="QR Code Reader">
+<main class="main-window" aria-label="QR Code Selector">
   <header class="app-header">
-    <h1>QR Code Reader</h1>
+    <h1>QR Code Selector</h1>
     <p class="subtitle">Capture a screen region to scan for QR codes.</p>
   </header>
 

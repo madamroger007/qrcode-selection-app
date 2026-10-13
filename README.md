@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="./static/app-icon.png" alt="QR Code Reader logo" width="128" />
-  <h1>QR Code Reader</h1>
+  <img src="./static/app-icon.png" alt="QR Code Selector logo" width="128" />
+  <h1>QR Code Selector</h1>
   <p>A lightweight desktop app for scanning QR codes directly from your screen.</p>
 
   ![CI](https://github.com/madamroger007/qrcode-selection-app/actions/workflows/ci.yml/badge.svg)
@@ -28,7 +28,7 @@
 
 ## Introduction
 
-**QR Code Reader** is a cross-platform desktop application built with [Tauri v2](https://tauri.app) and [Svelte 5](https://svelte.dev). It lets you point at any region of your screen, draw a selection box around a QR code, and instantly see the decoded result — no camera required, no browser extensions, no internet connection needed.
+**QR Code Selector** is a cross-platform desktop application built with [Tauri v2](https://tauri.app) and [Svelte 5](https://svelte.dev). It lets you point at any region of your screen, draw a selection box around a QR code, and instantly see the decoded result — no camera required, no browser extensions, no internet connection needed.
 
 All processing (screen capture and QR decoding) happens entirely on your machine using a pure-Rust decoder. Nothing is sent to any server.
 
@@ -90,7 +90,7 @@ Before installing from source you need the following tools. If you are using the
 1. Go to the [**Releases**](https://github.com/madamroger007/qrcode-selection-app/releases) page.
 2. Download the latest `.msi` or `.exe` installer for your platform.
 3. Run the installer and follow the on-screen prompts.
-4. Launch **QR Code Reader** from the Start Menu or desktop shortcut.
+4. Launch **QR Code Selector** from the Start Menu or desktop shortcut.
 
 > WebView2 is required and is pre-installed on Windows 10 (version 1803+) and Windows 11. If the app fails to launch, download and install [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section).
 
