@@ -100,7 +100,7 @@
     );
 
     unlistenRegionCancelled = await listen("region-cancelled", () => {
-      // User pressed Escape or cancelled without selecting — return to idle
+      // User pressed ESC or cancelled without selecting — return to idle
       resetToIdle();
     });
   });
@@ -192,17 +192,11 @@
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.5;
-    color: #0f0f0f;
-    background-color: #f6f6f6;
+    color: #fefaf3;
+    background: linear-gradient(135deg, #1b2cc1 0%, #1a1953 100%);
+    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :global(html, body) {
-      color: #f6f6f6;
-      background-color: #1a1a1a;
-    }
   }
 
   .main-window {
@@ -225,17 +219,12 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.25rem;
+    color: #fefaf3;
   }
 
   .subtitle {
-    color: #6b7280;
+    color: rgba(254, 250, 243, 0.65);
     font-size: 0.95rem;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .subtitle {
-      color: #9ca3af;
-    }
   }
 
   /* ---- Capture controls ---- */
@@ -254,30 +243,35 @@
     font-weight: 600;
     border: none;
     border-radius: 8px;
-    background-color: #3b82f6;
-    color: #ffffff;
+    background-color: #fefaf3;
+    color: #1a1953;
     cursor: pointer;
     transition:
       background-color 0.15s ease,
-      opacity 0.15s ease;
+      opacity 0.15s ease,
+      transform 0.1s ease;
     min-width: 140px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
   }
 
   .capture-button:hover:not(:disabled) {
-    background-color: #2563eb;
+    background-color: #fffdf7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
   .capture-button:active:not(:disabled) {
-    background-color: #1d4ed8;
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .capture-button:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
   .capture-button:focus-visible {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid #fefaf3;
     outline-offset: 3px;
   }
 
@@ -285,38 +279,28 @@
     padding: 0.6em 1.1em;
     font-size: 0.9rem;
     font-family: inherit;
-    border: 1px solid #d1d5db;
+    border: 1px solid rgba(254, 250, 243, 0.35);
     border-radius: 6px;
-    background: transparent;
+    background: rgba(254, 250, 243, 0.08);
     cursor: pointer;
-    color: inherit;
+    color: #fefaf3;
     transition:
       background-color 0.15s ease,
       border-color 0.15s ease;
   }
 
   .reset-button:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-    border-color: #9ca3af;
+    background-color: rgba(254, 250, 243, 0.15);
+    border-color: rgba(254, 250, 243, 0.6);
   }
 
   .reset-button:focus-visible {
-    outline: 2px solid currentColor;
+    outline: 2px solid #fefaf3;
     outline-offset: 2px;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .reset-button {
-      border-color: #374151;
-    }
-    .reset-button:hover {
-      background-color: rgba(255, 255, 255, 0.07);
-      border-color: #6b7280;
-    }
-  }
-
   .status-hint {
-    color: #6b7280;
+    color: rgba(254, 250, 243, 0.65);
     font-size: 0.95rem;
     font-style: italic;
   }
@@ -331,31 +315,18 @@
   .section-label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #6b7280;
+    color: rgba(254, 250, 243, 0.55);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .section-label {
-      color: #9ca3af;
-    }
   }
 
   .preview-image {
     max-width: 100%;
     max-height: 220px;
-    border: 1px solid #d1d5db;
+    border: 1px solid rgba(254, 250, 243, 0.2);
     border-radius: 6px;
     object-fit: contain;
-    background-color: #e5e7eb;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .preview-image {
-      border-color: #374151;
-      background-color: #111827;
-    }
+    background-color: rgba(0, 0, 0, 0.2);
   }
 
   /* ---- Result section ---- */

@@ -12,7 +12,7 @@ A Tauri v2 desktop application that reads QR codes from a screen region the user
 6. Results are displayed as cards; each card has a **Copy** button, and URLs also get an **Open** button (default browser).
 7. Multiple QR codes in a single capture are all decoded and shown.
 8. A 30-second decode timeout is enforced; if it expires the user sees an error message.
-9. **Escape** cancels the overlay; **Reset** returns the main window to idle.
+9. **ESC** cancels the overlay; **Reset** returns the main window to idle.
 
 ## Key Constraints
 

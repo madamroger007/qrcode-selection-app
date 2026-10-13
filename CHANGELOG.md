@@ -14,7 +14,7 @@ Initial public release. 🎉
 #### Screen Region Selection
 - Fullscreen transparent overlay window with crosshair cursor activates when the user clicks **Capture QR**.
 - Click-and-drag to draw a selection rectangle anywhere on the screen; pixel dimensions (`width × height`) are rendered live inside the selection box while dragging.
-- Pressing **Escape** during selection cancels the overlay and returns the app to idle — no capture is performed.
+- Pressing **ESC** during selection cancels the overlay and returns the app to idle — no capture is performed.
 - Overlay hides itself automatically after the mouse is released, whether the capture succeeds or not.
 
 #### Multi-Monitor Screen Capture

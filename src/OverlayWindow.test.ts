@@ -119,14 +119,14 @@ describe('OverlayWindow', () => {
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveAttribute(
       'aria-label',
-      'Screen region selector. Click and drag to select a region. Press Escape to cancel.',
+      'Screen region selector. Click and drag to select a region. Press ESC to cancel.',
     );
   });
 
   it('shows the idle hint text before any interaction', () => {
     const { getByText } = render(OverlayWindow);
     expect(
-      getByText('Click and drag to select a region. Press Escape to cancel.'),
+      getByText('Click and drag to select a region. Press ESC to cancel.'),
     ).toBeInTheDocument();
   });
 
@@ -145,7 +145,7 @@ describe('OverlayWindow', () => {
 
     // Hint text changes to the dragging message
     expect(
-      getByText('Release to confirm selection. Press Escape to cancel.'),
+      getByText('Release to confirm selection. Press ESC to cancel.'),
     ).toBeInTheDocument();
   });
 
@@ -333,9 +333,9 @@ describe('OverlayWindow', () => {
     expect(payload.y).toBeGreaterThanOrEqual(0);
   });
 
-  // ── 6. Escape key cancels selection (requirement 2.7) ────────────────────
+  // ── 6. ESC key cancels selection (requirement 2.7) ────────────────────
 
-  it('emits "region-cancelled" when Escape is pressed during idle phase', async () => {
+  it('emits "region-cancelled" when ESC is pressed during idle phase', async () => {
     render(OverlayWindow);
 
     await keydown('Escape');
@@ -365,7 +365,7 @@ describe('OverlayWindow', () => {
     });
   });
 
-  it('does not emit "region-selected" when Escape cancels a drag in progress', async () => {
+  it('does not emit "region-selected" when ESC cancels a drag in progress', async () => {
     const { getByRole } = render(OverlayWindow);
     const overlay = getByRole('application');
 

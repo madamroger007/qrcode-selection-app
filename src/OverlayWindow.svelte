@@ -183,9 +183,9 @@
   <!-- Hint tooltip -->
   <div class="hint" aria-live="polite">
     {#if phase === "dragging"}
-      Release to confirm selection. Press Escape to cancel.
+      Release to confirm selection. Press ESC to cancel.
     {:else if phase === "idle"}
-      Click and drag to select a region. Press Escape to cancel.
+      Click and drag to select a region. Press ESC to cancel.
     {/if}
   </div>
 

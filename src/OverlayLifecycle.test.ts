@@ -4,7 +4,7 @@
  * These tests verify:
  *   - The overlay window is shown when the user initiates a capture (Req 2.1)
  *   - The overlay window is hidden after a region selection completes (Req 2.6)
- *   - The overlay window is hidden when the user cancels via Escape (Req 2.6)
+ *   - The overlay window is hidden when the user cancels via ESC (Req 2.6)
  *
  * Both MainWindow and OverlayWindow are rendered together so that the full
  * event round-trip (invoke → Tauri event → handler) can be exercised using
@@ -255,9 +255,9 @@ describe('Overlay window lifecycle integration', () => {
     expect(actualRegion).toEqual(region);
   });
 
-  // ── 3. Overlay hides on cancel / Escape (Req 2.6) ─────────────────────────
+  // ── 3. Overlay hides on cancel / ESC (Req 2.6) ─────────────────────────
 
-  it('hides the overlay when Escape is pressed', async () => {
+  it('hides the overlay when ESC is pressed', async () => {
     render(OverlayWindow);
 
     await fireEvent(window, new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));

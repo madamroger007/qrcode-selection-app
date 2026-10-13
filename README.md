@@ -42,7 +42,7 @@ All processing (screen capture and QR decoding) happens entirely on your machine
 - **Copy to clipboard** — one click copies any decoded result
 - **Open URLs** — detected URLs get an "Open" button that launches your default browser
 - **30-second decode timeout** — long-running decodes are automatically cancelled with a clear error message
-- **Keyboard shortcuts** — press `Escape` to cancel a selection at any time
+- **Keyboard shortcuts** — press `ESC` to cancel a selection at any time
 - **Dark mode** — follows your system color scheme automatically
 
 ---
@@ -145,7 +145,7 @@ src-tauri/target/release/bundle/
 6. The decoded text appears as a result card:
    - Click **Copy** to copy the text to your clipboard.
    - If the text is a URL, click **Open** to open it in your default browser.
-7. Click **Reset** to start a new capture, or press **Escape** during selection to cancel.
+7. Click **Reset** to start a new capture, or press **ESC** during selection to cancel.
 
 ---
 

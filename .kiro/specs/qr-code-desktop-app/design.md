@@ -174,9 +174,9 @@ Root component. Subscribes to `appState`. Renders:
 Fullscreen, transparent Svelte component for the overlay window. Responsibilities:
 - Canvas-based crosshair cursor and real-time selection rectangle rendering
 - Mouse event handling: `mousedown` (anchor), `mousemove` (resize rect + show dimensions), `mouseup` (emit region + close)
-- Keyboard handler: `Escape` key cancels and closes overlay
+- Keyboard handler: `ESC` key cancels and closes overlay
 - Emits a Tauri event (`region-selected`) with `{ x, y, width, height }` payload on mouseup
-- Emits a Tauri event (`capture-cancelled`) on Escape
+- Emits a Tauri event (`capture-cancelled`) on ESC
 - Uses `window.__TAURI__.window` APIs to hide itself after selection
 
 ### `ResultDisplay.svelte`
@@ -211,7 +211,7 @@ User releases mouse
   → MainWindow calls invoke('decode_qr', { imageBytes })
   → MainWindow updates appState with results or error
 
-User presses Escape
+User presses ESC
   → OverlayWindow emits 'capture-cancelled'
   → OverlayWindow hides itself
   → MainWindow resets appState to idle
@@ -254,5 +254,5 @@ User presses Escape
 - `appState` store: verify each action helper transitions state correctly
 - `CopyButton.svelte`: mock Tauri IPC; verify copied/error states and revert timing
 - `ResultDisplay.svelte`: verify URL detection, Open URL button presence, CopyButton rendering
-- `OverlayWindow.svelte`: selection logic (coordinate calculation, Escape cancel)
+- `OverlayWindow.svelte`: selection logic (coordinate calculation, ESC cancel)
 - `OverlayWindow` lifecycle: integration test for overlay show/hide sequencing

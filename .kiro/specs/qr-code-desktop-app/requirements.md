@@ -40,7 +40,7 @@ When the user releases the mouse button, the application MUST capture the pixels
 The overlay window MUST close (hide) automatically after the user releases the mouse button, whether the capture succeeds or fails.
 
 ### 2.7
-The user MUST be able to cancel the selection by pressing the Escape key. Pressing Escape MUST dismiss the overlay without performing a capture.
+The user MUST be able to cancel the selection by pressing the ESC key. Pressing ESC MUST dismiss the overlay without performing a capture.
 
 ### 2.8
 The main window MUST provide a clearly labeled button ("Capture QR Code" or equivalent) that triggers the overlay to appear.
