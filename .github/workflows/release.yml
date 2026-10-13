@@ -60,11 +60,6 @@ jobs:
             runner: windows-latest
             args: --target x86_64-pc-windows-msvc
 
-          # macOS Intel — produces .dmg + .app
-          - name: macOS Intel
-            runner: macos-13
-            args: --target x86_64-apple-darwin
-
           # macOS Apple Silicon — produces .dmg + .app
           - name: macOS Apple Silicon
             runner: macos-latest
@@ -148,7 +143,6 @@ jobs:
             | Platform | File to download |
             |---|---|
             | Windows | `_x64-setup.exe` (recommended) or `_x64_en-US.msi` |
-            | macOS Intel | `.dmg` for `x86_64` |
             | macOS Apple Silicon | `.dmg` for `aarch64` |
             | Linux (Debian/Ubuntu) | `.deb` |
             | Linux (Fedora/RHEL) | `.rpm` |
