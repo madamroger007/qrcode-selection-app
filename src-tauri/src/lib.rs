@@ -1,4 +1,4 @@
-pub mod qr_decoder;
+﻿pub mod qr_decoder;
 pub mod screen_capture;
 pub mod window_manager;
 
@@ -17,16 +17,16 @@ fn capture_region(region: CaptureRegion) -> Result<Vec<u8>, String> {
 
 /// IPC command: decode QR codes from raw PNG bytes.
 ///
-/// The body is executed inside a 30-second `tokio::time::timeout`.  If the
-/// decoder does not return within that window the command returns
-/// `Err("QR decoding timed out after 30 seconds")`.
+/// Runs inside a 30-second `tokio::time::timeout`. Returns
+/// `Err("QR decoding timed out after 30 seconds")` if the decoder exceeds
+/// that budget.
 #[tauri::command]
 async fn decode_qr(image_bytes: Vec<u8>) -> Result<Vec<String>, String> {
     decode_qr_with_timeout(image_bytes, Duration::from_secs(30)).await
 }
 
-/// Internal helper that runs the QR decode inside a configurable timeout.
-/// Extracted so that unit tests can supply a short timeout without waiting 30 s.
+/// Internal helper: runs the QR decode with a configurable timeout so tests
+/// can use a short duration without waiting 30 s.
 pub(crate) async fn decode_qr_with_timeout(
     image_bytes: Vec<u8>,
     timeout_duration: Duration,
@@ -45,36 +45,16 @@ mod decode_qr_timeout_tests {
     use super::decode_qr_with_timeout;
     use std::time::Duration;
 
-    /// Verifies the timeout path: a decode future that never completes within the
-    /// allotted window must return `Err` with the expected timeout message.
-    ///
-    /// We pass a 1-millisecond timeout and a deliberately slow async task so the
-    /// test runs in milliseconds rather than 30 seconds.
-    ///
+    /// Timeout path: a blocking task that sleeps 2 s must be cancelled by a
+    /// 1 ms deadline and return the expected error string.
     /// **Validates: Requirements 3.5, 3.6**
     #[tokio::test]
     async fn decode_qr_returns_timeout_error_when_operation_exceeds_limit() {
-        // Use a PNG header followed by enough bytes to be a plausible payload,
-        // but we rely on the *timeout* being hit rather than a decode error.
-        // We supply a real 1×1 white PNG that decodes quickly under normal
-        // circumstances, then pair it with an artificially tiny timeout so the
-        // spawn_blocking task doesn't get a chance to complete.
-        //
-        // Strategy: spawn a blocking task that sleeps for 2 seconds, which is
-        // longer than the 1 ms timeout we set.  We achieve this by calling
-        // decode_qr_with_timeout with a custom future via a raw tokio approach.
-        //
-        // Since decode_qr_with_timeout accepts Vec<u8> and calls spawn_blocking
-        // internally, we use tokio::time::timeout directly around our own
-        // slow future to confirm the timeout path is reachable.
-
-        // Build a future that simulates a blocking task that takes > 1 ms.
         let slow_future = tokio::task::spawn_blocking(|| {
             std::thread::sleep(std::time::Duration::from_secs(2));
             Ok::<Vec<String>, String>(vec![])
         });
 
-        // Apply a 1 ms timeout — it should always expire before the 2 s sleep.
         let result: Result<Vec<String>, String> =
             match tokio::time::timeout(Duration::from_millis(1), slow_future).await {
                 Ok(join_result) => match join_result {
@@ -84,25 +64,14 @@ mod decode_qr_timeout_tests {
                 Err(_elapsed) => Err("QR decoding timed out after 30 seconds".to_string()),
             };
 
-        assert!(
-            result.is_err(),
-            "expected Err from timeout, got Ok({:?})",
-            result
-        );
-        assert_eq!(
-            result.unwrap_err(),
-            "QR decoding timed out after 30 seconds",
-            "timeout error message must match exactly"
-        );
+        assert!(result.is_err(), "expected Err from timeout, got Ok({result:?})");
+        assert_eq!(result.unwrap_err(), "QR decoding timed out after 30 seconds");
     }
 
-    /// Verifies the happy path is unaffected: a fast decode completes before
-    /// the timeout and returns `Ok`.
-    ///
+    /// Happy path: a real QR PNG decodes well within 30 s.
     /// **Validates: Requirements 3.5, 3.6**
     #[tokio::test]
     async fn decode_qr_completes_successfully_within_timeout() {
-        // Generate a small valid QR-code PNG in a blocking thread.
         let png_bytes = tokio::task::spawn_blocking(|| {
             use image::Luma;
             use qrcode::QrCode;
@@ -116,38 +85,153 @@ mod decode_qr_timeout_tests {
         .await
         .expect("spawn_blocking failed");
 
-        // A 30-second timeout should be ample for a real decode.
         let result = decode_qr_with_timeout(png_bytes, Duration::from_secs(30)).await;
-
-        assert!(
-            result.is_ok(),
-            "expected Ok for valid QR image within timeout, got {:?}",
-            result
-        );
-        let texts = result.unwrap();
-        assert_eq!(texts, vec!["timeout-test".to_string()]);
+        assert!(result.is_ok(), "expected Ok for valid QR image, got {result:?}");
+        assert_eq!(result.unwrap(), vec!["timeout-test".to_string()]);
     }
 }
 
-/// IPC command: open `url` in the system's default browser.
+/// IPC command: open `url` in the system default browser.
 #[tauri::command]
 fn open_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String> {
     window_manager::open_url(&app_handle, url)
 }
 
+/// Polls a predicate until it returns `Ok(false)` (window is gone from
+/// screen) or all attempts are exhausted.
+///
+/// - `is_still_visible`: `Ok(true)` = still blocking the screen,
+///   `Ok(false)` = gone, `Err(...)` = propagate immediately.
+/// - `max_polls`: maximum number of checks.
+/// - `poll_interval`: sleep between each check.
+///
+/// Returns `Ok(())` on first `Ok(false)` result.
+/// Returns `Err("Main window did not hide in time")` after all polls.
+///
+/// `pub(crate)` so unit tests can call it directly.
+pub(crate) async fn poll_until_hidden<F>(
+    mut is_still_visible: F,
+    max_polls: u32,
+    poll_interval: Duration,
+) -> Result<(), String>
+where
+    F: FnMut() -> Result<bool, String>,
+{
+    for _ in 0..max_polls {
+        if !is_still_visible().map_err(|e| e.to_string())? {
+            return Ok(());
+        }
+        tokio::time::sleep(poll_interval).await;
+    }
+    // One final check after the last sleep.
+    if !is_still_visible().map_err(|e| e.to_string())? {
+        return Ok(());
+    }
+    Err("Main window did not hide in time".to_string())
+}
+
 /// IPC command: show the overlay window and give it focus.
+///
+/// Polls the main window's `is_visible()` for up to 500 ms in 50 ms
+/// increments via [`poll_until_hidden`], waiting for the `hide()` call on
+/// the frontend to take effect before the overlay appears. This eliminates
+/// the race where both windows are visible simultaneously.
+///
+/// Returns `Err("Main window did not hide in time")` if the main window is
+/// still visible after 500 ms, or if the overlay cannot be shown/focused.
 #[tauri::command]
-fn show_overlay(app_handle: tauri::AppHandle) -> Result<(), String> {
+async fn show_overlay(app_handle: tauri::AppHandle) -> Result<(), String> {
     use tauri::Manager;
+
+    let main_window = app_handle
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    poll_until_hidden(
+        || main_window.is_visible().map_err(|e| e.to_string()),
+        10,
+        Duration::from_millis(50),
+    )
+    .await?;
+
     let overlay = app_handle
         .get_webview_window("overlay")
         .ok_or_else(|| "Overlay window not found".to_string())?;
     overlay
         .show()
-        .map_err(|e| format!("Failed to show overlay: {}", e))?;
+        .map_err(|e| format!("Failed to show overlay: {e}"))?;
     overlay
         .set_focus()
-        .map_err(|e| format!("Failed to focus overlay: {}", e))
+        .map_err(|e| format!("Failed to focus overlay: {e}"))
+}
+
+#[cfg(test)]
+mod show_overlay_tests {
+    use super::poll_until_hidden;
+    use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
+
+    /// Build a checker that replays a fixed sequence of bool values.
+    /// Once exhausted, repeats the last value indefinitely.
+    fn make_checker(sequence: Vec<bool>) -> impl FnMut() -> Result<bool, String> {
+        let idx = Arc::new(Mutex::new(0usize));
+        let seq = Arc::new(sequence);
+        move || {
+            let mut guard = idx.lock().unwrap();
+            let i = *guard;
+            let val = if i < seq.len() { seq[i] } else { *seq.last().unwrap() };
+            if i < seq.len() { *guard += 1; }
+            Ok(val)
+        }
+    }
+
+    /// Window already hidden on first check — returns Ok with no sleep.
+    /// **Validates: Requirements 2.9, 2.10**
+    #[tokio::test]
+    async fn already_hidden_returns_ok_immediately() {
+        let start = Instant::now();
+        let result = poll_until_hidden(make_checker(vec![false]), 10, Duration::from_millis(50)).await;
+        assert!(result.is_ok(), "Expected Ok(()), got {result:?}");
+        assert!(start.elapsed() < Duration::from_millis(40), "took {:?}", start.elapsed());
+    }
+
+    /// Window hides after several polls — returns Ok after waiting.
+    /// **Validates: Requirements 2.9, 2.10**
+    #[tokio::test]
+    async fn hides_after_several_polls_returns_ok() {
+        let start = Instant::now();
+        let result = poll_until_hidden(
+            make_checker(vec![true, true, true, true, false]),
+            10,
+            Duration::from_millis(5),
+        ).await;
+        assert!(result.is_ok(), "Expected Ok(()), got {result:?}");
+        assert!(start.elapsed() >= Duration::from_millis(15), "took {:?}", start.elapsed());
+        assert!(start.elapsed() < Duration::from_millis(200), "took {:?}", start.elapsed());
+    }
+
+    /// Window never hides — returns Err after polls exhausted.
+    /// **Validates: Requirements 2.9, 2.10**
+    #[tokio::test]
+    async fn never_hides_returns_err() {
+        let result = poll_until_hidden(make_checker(vec![true]), 5, Duration::from_millis(5)).await;
+        assert!(result.is_err(), "Expected Err, got {result:?}");
+        assert_eq!(result.unwrap_err(), "Main window did not hide in time");
+    }
+
+    /// Checker error propagates immediately without further polling.
+    /// **Validates: Requirements 2.9, 2.10**
+    #[tokio::test]
+    async fn checker_error_propagates() {
+        let mut calls = 0u32;
+        let result = poll_until_hidden(
+            move || { calls += 1; Err(format!("handle invalid (call {calls})")) },
+            10,
+            Duration::from_millis(5),
+        ).await;
+        assert!(result.is_err(), "Expected Err, got {result:?}");
+        assert!(result.unwrap_err().contains("handle invalid"));
+    }
 }
 
 /// IPC command: imperatively hide the overlay window.
@@ -159,7 +243,7 @@ fn hide_overlay(app_handle: tauri::AppHandle) -> Result<(), String> {
         .ok_or_else(|| "Overlay window not found".to_string())?;
     overlay
         .hide()
-        .map_err(|e| format!("Failed to hide overlay: {}", e))
+        .map_err(|e| format!("Failed to hide overlay: {e}"))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

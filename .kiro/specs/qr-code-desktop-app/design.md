@@ -1,5 +1,21 @@
 # Design: QR Code Desktop App
 
+## Overview
+
+See [Architecture Overview](#architecture-overview) below.
+
+## Architecture
+
+See [Architecture Overview](#architecture-overview) below.
+
+## Components and Interfaces
+
+See [Frontend Components](#frontend-components) below.
+
+## Data Models
+
+See [Frontend State Model](#frontend-state-model-srclibstoresappstatets) below.
+
 ## Architecture Overview
 
 The application uses a two-process architecture mandated by Tauri v2:
@@ -113,8 +129,10 @@ async fn decode_qr(image_bytes: Vec<u8>) -> Result<Vec<String>, String>
 fn open_url(app_handle: tauri::AppHandle, url: String) -> Result<(), String>
 
 #[tauri::command]
-fn show_overlay(app_handle: tauri::AppHandle) -> Result<(), String>
-// Shows the overlay window and gives it focus
+async fn show_overlay(app_handle: tauri::AppHandle) -> Result<(), String>
+// Waits until the main window reports is_visible() == false (up to 500 ms, polling every 50 ms)
+// Then shows the overlay window and gives it focus
+// Returns Err if the main window is still visible after the wait, or if overlay cannot be shown
 
 #[tauri::command]
 fn hide_overlay(app_handle: tauri::AppHandle) -> Result<(), String>
@@ -193,12 +211,12 @@ Root component. Uses Svelte 5 runes (`$derived`, `$effect`). Renders:
 - `<ResultDisplay />` for decoded results, loading spinner, and error state
 
 Orchestrates the full workflow:
-1. `handleCapture()` — hides main window → 150 ms delay → `invoke("show_overlay")`
+1. `handleCapture()` — `hide()` → `invoke("show_overlay")` (Rust polls `is_visible()` ≤ 500 ms) → `startCapture()`
 2. On `region-selected` event — `restoreMainWindow()` → `invoke("capture_region")` → build preview blob URL → `invoke("decode_qr")` → `setResults()`
 3. On `region-cancelled` event — `restoreMainWindow()` → `resetToIdle()`
 4. Object URLs are revoked via `$effect` when `previewImageUrl` changes
 
-> **Main window hide/show**: The main window hides itself before showing the overlay so it does not obstruct the selection. It restores itself (`show()` + `setFocus()`) as soon as the overlay emits any event. Requires `core:window:allow-hide` and `core:window:allow-show` in `capabilities/default.json`.
+> **Main window hide/show**: `handleCapture()` calls `hide()` on the main window, then `invoke("show_overlay")`. The Rust command polls `is_visible()` for up to 500 ms in 50 ms increments, ensuring the window is fully hidden before the overlay appears. On restore, `show()` and `setFocus()` are called. Requires `core:window:allow-hide` and `core:window:allow-show` in `capabilities/default.json`. No minimize/unminimize is used.
 
 ### `OverlayWindow.svelte`
 Fullscreen, transparent component for the overlay window. Responsibilities:
@@ -230,9 +248,10 @@ Props: `text: string`. Uses `writeText` from `@tauri-apps/plugin-clipboard-manag
 ```
 User clicks "Capture QR"
   → startCapture() (store reset)
-  → getCurrentWindow().hide()          ← main window hides itself
-  → setTimeout(150ms)
-  → invoke("show_overlay")             ← overlay becomes visible
+  → getCurrentWindow().minimize()      ← minimize first (OS compositor fallback)
+  → getCurrentWindow().hide()          ← then hide
+  → invoke("show_overlay")             ← Rust polls main window is_visible() ≤ 500 ms
+                                          then makes overlay visible
 
 User drags a region
   → OverlayWindow renders selection rect with real-time dimensions
@@ -240,14 +259,22 @@ User drags a region
 User releases mouse
   → OverlayWindow emits 'region-selected' { x, y, width, height }
   → OverlayWindow hides itself
-  → MainWindow: restoreMainWindow() → handleRegionSelected()
+  → MainWindow: restoreMainWindow()
+     → getCurrentWindow().unminimize()
+     → getCurrentWindow().show()
+     → getCurrentWindow().setFocus()
+  → handleRegionSelected()
      → invoke("capture_region") → build preview blob URL (setPreview)
      → invoke("decode_qr")      → setResults() or setError()
 
 User presses Escape
   → OverlayWindow emits 'region-cancelled'
   → OverlayWindow hides itself
-  → MainWindow: restoreMainWindow() → resetToIdle()
+  → MainWindow: restoreMainWindow()
+     → getCurrentWindow().unminimize()
+     → getCurrentWindow().show()
+     → getCurrentWindow().setFocus()
+  → resetToIdle()
 ```
 
 ---
@@ -261,6 +288,8 @@ User presses Escape
 - `shell:allow-open`
 - `core:window:allow-hide`
 - `core:window:allow-show`
+- `core:window:allow-minimize`
+- `core:window:allow-unminimize`
 
 ### `overlay.json` (overlay window)
 - `core:default`
@@ -276,7 +305,7 @@ User presses Escape
 | `capture_region` | Frontend → Rust | `{ region: { x, y, width, height } }` | `number[]` (PNG bytes) or error |
 | `decode_qr` | Frontend → Rust | `{ imageBytes: number[] }` | `string[]` (decoded texts) or error |
 | `open_url` | Frontend → Rust | `{ url: string }` | `void` or error |
-| `show_overlay` | Frontend → Rust | — | `void` or error |
+| `show_overlay` | Frontend → Rust | — | `void` or error (async; polls `is_visible()` ≤ 500 ms) |
 | `hide_overlay` | Frontend → Rust | — | `void` or error |
 | `plugin:clipboard-manager\|write_text` | Frontend → Plugin | `{ text: string }` | `void` or error |
 

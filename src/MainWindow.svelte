@@ -2,7 +2,6 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount, onDestroy } from "svelte";
 
   import ResultDisplay from "$lib/components/ResultDisplay.svelte";
   import {
@@ -13,15 +12,19 @@
     setResults,
     setError,
     resetToIdle,
-    type QrResult,
   } from "$lib/stores/appState";
 
-  // ----- Reactive state from store -----
+  // ----- Reactive store slices (Svelte 5 runes) -----
   let capturePhase = $derived($appState.capturePhase);
   let processingState = $derived($appState.processingState);
   let previewImageUrl = $derived($appState.previewImageUrl);
 
-  // ----- Region type (matches the payload emitted by OverlayWindow.svelte) -----
+  // True while hide() + invoke("show_overlay") is in flight.
+  // Keeps the button disabled and prevents the UI from flipping to
+  // "selecting" before the overlay is actually visible.
+  let isOverlayOpening = $state(false);
+
+  // ----- Region payload type (matches OverlayWindow.svelte emit) -----
   interface Region {
     x: number;
     y: number;
@@ -29,45 +32,40 @@
     height: number;
   }
 
-  // ----- Tauri event listeners -----
-  let unlistenRegionSelected: UnlistenFn | null = null;
-  let unlistenRegionCancelled: UnlistenFn | null = null;
-
-  // ----- Show the overlay window -----
-  async function showOverlay(): Promise<void> {
-    await invoke("show_overlay");
-  }
-
-  // ----- Restore the main window after overlay closes -----
+  // ----- Restore the main window after the capture session ends -----
   async function restoreMainWindow(): Promise<void> {
     try {
       const win = getCurrentWindow();
       await win.show();
       await win.setFocus();
     } catch {
-      // Non-critical — window restore failure shouldn't block the capture flow
+      // Non-critical — do not block the capture flow on restore failure
     }
   }
 
   // ----- Handle the "Capture QR" button -----
   async function handleCapture(): Promise<void> {
-    startCapture();
+    isOverlayOpening = true;
     try {
-      // Hide the main window first so it doesn't obstruct the overlay selection
       const win = getCurrentWindow();
+      // Hide the main window so it is absent from the screen before the
+      // overlay appears. The Rust show_overlay command polls is_visible()
+      // for up to 500 ms, ensuring the hide has taken effect.
       await win.hide();
-      // Small delay to let the OS fully composite the hide before the overlay appears
-      await new Promise((r) => setTimeout(r, 150));
-      await showOverlay();
+      await invoke("show_overlay");
+      // Transition to 'selecting' only after the overlay is confirmed
+      // visible — prevents the status hint appearing on a visible window.
+      startCapture();
     } catch (err) {
       await restoreMainWindow();
       setError(`Failed to open selection overlay: ${String(err)}`);
+    } finally {
+      isOverlayOpening = false;
     }
   }
 
   // ----- Process a confirmed region selection -----
   async function handleRegionSelected(region: Region): Promise<void> {
-    // Validate dimensions
     if (region.width < 1 || region.height < 1) {
       setError("Selected region is too small. Please try again.");
       return;
@@ -75,7 +73,7 @@
 
     setLoading();
 
-    // Step 1: capture the screen region
+    // Capture the screen region → PNG bytes
     let imageBytes: number[];
     try {
       imageBytes = await invoke<number[]>("capture_region", { region });
@@ -84,18 +82,17 @@
       return;
     }
 
-    // Build a preview object URL from the PNG bytes
+    // Build a preview object URL from the PNG bytes (non-critical)
     try {
       const blob = new Blob([new Uint8Array(imageBytes)], {
         type: "image/png",
       });
-      const url = URL.createObjectURL(blob);
-      setPreview(url);
+      setPreview(URL.createObjectURL(blob));
     } catch {
-      // Preview is non-critical; continue without it
+      // Preview failure is non-critical; decoding can still proceed
     }
 
-    // Step 2: decode QR codes
+    // Decode QR codes
     let decoded: string[];
     try {
       decoded = await invoke<string[]>("decode_qr", { imageBytes });
@@ -104,32 +101,45 @@
       return;
     }
 
-    const results: QrResult[] = decoded.map((text) => ({ text }));
-    setResults(results);
+    setResults(decoded.map((text) => ({ text })));
   }
 
-  // ----- Lifecycle: register/unregister event listeners -----
-  onMount(async () => {
-    unlistenRegionSelected = await listen<Region>(
-      "region-selected",
-      (event) => {
-        // Restore main window first, then process the region
-        restoreMainWindow().then(() => handleRegionSelected(event.payload));
-      },
-    );
+  // ----- Tauri event listeners (Svelte 5 $effect for lifecycle) -----
+  $effect(() => {
+    let unlistenSelected: UnlistenFn | null = null;
+    let unlistenCancelled: UnlistenFn | null = null;
 
-    unlistenRegionCancelled = await listen("region-cancelled", () => {
-      // User pressed ESC or cancelled without selecting — restore window and return to idle
-      restoreMainWindow().then(() => resetToIdle());
+    // region-selected: hide the overlay first so neither window is on
+    // screen during capture, then capture+decode, then restore the main window.
+    const selectedPromise = listen<Region>("region-selected", async (event) => {
+      try {
+        // Belt-and-suspenders: overlay hides itself in OverlayWindow.svelte,
+        // but we also call hide_overlay here to guarantee it is gone before
+        // capture_region runs and screenshots the screen.
+        await invoke("hide_overlay");
+        await handleRegionSelected(event.payload);
+      } finally {
+        await restoreMainWindow();
+      }
+    }).then((fn) => {
+      unlistenSelected = fn;
     });
+
+    // region-cancelled: just restore the main window and reset state.
+    const cancelledPromise = listen("region-cancelled", async () => {
+      await restoreMainWindow();
+      resetToIdle();
+    }).then((fn) => {
+      unlistenCancelled = fn;
+    });
+
+    return () => {
+      selectedPromise.then(() => unlistenSelected?.());
+      cancelledPromise.then(() => unlistenCancelled?.());
+    };
   });
 
-  onDestroy(() => {
-    unlistenRegionSelected?.();
-    unlistenRegionCancelled?.();
-  });
-
-  // ----- Revoke object URLs when they change to prevent memory leaks -----
+  // ----- Revoke object URLs when previewImageUrl changes (prevent leaks) -----
   let previousPreviewUrl: string | null = null;
   $effect(() => {
     const current = previewImageUrl;
@@ -148,25 +158,26 @@
 
   <!-- Primary action area -->
   <section class="capture-section" aria-label="Capture controls">
-    {#if capturePhase === "idle" || capturePhase === "captured"}
+    {#if capturePhase === "selecting"}
+      <p class="status-hint" role="status" aria-live="polite">
+        Select a region on screen, then release to capture.
+      </p>
+    {:else}
       <button
         type="button"
         class="capture-button"
         onclick={handleCapture}
-        disabled={processingState === "loading"}
+        disabled={processingState === "loading" || isOverlayOpening}
         aria-label="Capture screen region to scan for QR codes"
       >
         {#if processingState === "loading"}
           Capturing…
+        {:else if isOverlayOpening}
+          Opening…
         {:else}
           Capture QR
         {/if}
       </button>
-    {:else if capturePhase === "selecting"}
-      <!-- Overlay is open; show a status message instead of the button -->
-      <p class="status-hint" role="status" aria-live="polite">
-        Select a region on screen, then release to capture.
-      </p>
     {/if}
 
     {#if capturePhase !== "idle"}
@@ -212,12 +223,12 @@
     font-size: 16px;
     line-height: 1.5;
     color: #fefaf3;
-    background: #0b0130;
-    background: linear-gradient(
-      296deg,
-      rgba(11, 1, 48, 1) 17%,
-      rgba(6, 6, 46, 1) 50%,
-      rgba(6, 4, 26, 1) 88%
+    background-color: #050029;
+    background-image: linear-gradient(
+      45deg,
+      #050029 0%,
+      #13095d 47%,
+      #060029 100%
     );
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
@@ -234,7 +245,6 @@
     min-height: 100vh;
   }
 
-  /* ---- Header ---- */
   .app-header {
     text-align: center;
   }
@@ -252,7 +262,6 @@
     font-size: 0.95rem;
   }
 
-  /* ---- Capture controls ---- */
   .capture-section {
     display: flex;
     align-items: center;
@@ -330,7 +339,6 @@
     font-style: italic;
   }
 
-  /* ---- Preview ---- */
   .preview-section {
     display: flex;
     flex-direction: column;
@@ -354,7 +362,6 @@
     background-color: rgba(0, 0, 0, 0.2);
   }
 
-  /* ---- Result section ---- */
   .result-section {
     flex: 1;
   }

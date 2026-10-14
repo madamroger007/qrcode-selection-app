@@ -47,6 +47,16 @@
         "executionId": "e31daaeb-7138-4550-b9a7-361828c733fd",
         "chatSessionId": "sess_5976f1c6-f321-4362-ac12-429eb8b83396",
         "timestamp": 1791853504500
+      },
+      {
+        "executionId": "5d1b275d-5368-442c-a2b8-804827dfe013",
+        "chatSessionId": "sess_372339a0-aff2-4e7e-aa43-39280726eeb7",
+        "timestamp": 1791935192969
+      },
+      {
+        "executionId": "5d1b275d-5368-442c-a2b8-804827dfe013",
+        "chatSessionId": "sess_372339a0-aff2-4e7e-aa43-39280726eeb7",
+        "timestamp": 1791935220994
       }
     ],
     "2. Configure Tauri windows and permissions": [
@@ -365,6 +375,54 @@
         "executionId": "92edfdea-ee2e-4e12-9568-769cca8a2e7e",
         "chatSessionId": "sess_2e80795f-045e-4fa7-9f5a-369dc9912a3b",
         "timestamp": 1791886271434
+      }
+    ],
+    "3.6 Register Tauri commands and plugins in `src-tauri/src/lib.rs`": [
+      {
+        "executionId": "ad3c5431-591f-42e1-ad9a-6317be09f00d",
+        "chatSessionId": "sess_cfea2fab-fe63-4272-bd31-733a90754a30",
+        "timestamp": 1791935250145
+      },
+      {
+        "executionId": "ad3c5431-591f-42e1-ad9a-6317be09f00d",
+        "chatSessionId": "sess_cfea2fab-fe63-4272-bd31-733a90754a30",
+        "timestamp": 1791935356440
+      }
+    ],
+    "9.1 Create `src/MainWindow.svelte`": [
+      {
+        "executionId": "b2baa73c-dee5-4f98-bcfc-3d5c2b02e7e5",
+        "chatSessionId": "sess_2d929f26-a6dc-4100-ba98-3524e2c7eb35",
+        "timestamp": 1791935687253
+      },
+      {
+        "executionId": "b2baa73c-dee5-4f98-bcfc-3d5c2b02e7e5",
+        "chatSessionId": "sess_2d929f26-a6dc-4100-ba98-3524e2c7eb35",
+        "timestamp": 1791936111396
+      }
+    ],
+    "11.1 `show_overlay` / `hide_overlay` IPC commands in `lib.rs`": [
+      {
+        "executionId": "9434538a-9c89-4122-b04a-92d79d372ff2",
+        "chatSessionId": "sess_05bd8b29-beee-431b-8ae1-123c1ab40865",
+        "timestamp": 1791936164816
+      },
+      {
+        "executionId": "9434538a-9c89-4122-b04a-92d79d372ff2",
+        "chatSessionId": "sess_05bd8b29-beee-431b-8ae1-123c1ab40865",
+        "timestamp": 1791936200925
+      }
+    ],
+    "11.3 Write unit test for `show_overlay` polling logic in `lib.rs`": [
+      {
+        "executionId": "783ff037-8e84-4d83-8d58-d8913c7d0c50",
+        "chatSessionId": "sess_5ce30fc7-6cf0-4cf0-bee2-ead5e888a0d4",
+        "timestamp": 1791936221954
+      },
+      {
+        "executionId": "783ff037-8e84-4d83-8d58-d8913c7d0c50",
+        "chatSessionId": "sess_5ce30fc7-6cf0-4cf0-bee2-ead5e888a0d4",
+        "timestamp": 1791936315294
       }
     ]
   }

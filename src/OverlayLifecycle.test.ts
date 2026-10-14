@@ -67,6 +67,10 @@ const mockHide = vi.fn();
 const mockShow = vi.fn();
 const mockSetFocus = vi.fn();
 
+// `getCurrentWindow().minimize()` / `.unminimize()` — called by MainWindow handleCapture / restoreMainWindow
+const mockMinimize = vi.fn();
+const mockUnminimize = vi.fn();
+
 // `getCurrentWindow().onFocusChanged()` — called by OverlayWindow $effect
 const mockOnFocusChanged = vi.fn((_cb: unknown) => Promise.resolve(vi.fn()));
 
@@ -75,6 +79,8 @@ vi.mock('@tauri-apps/api/window', () => ({
     hide: mockHide,
     show: mockShow,
     setFocus: mockSetFocus,
+    minimize: mockMinimize,
+    unminimize: mockUnminimize,
     onFocusChanged: mockOnFocusChanged,
   }),
 }));
@@ -146,6 +152,8 @@ describe('Overlay window lifecycle integration', () => {
     mockHide.mockResolvedValue(undefined);
     mockShow.mockResolvedValue(undefined);
     mockSetFocus.mockResolvedValue(undefined);
+    mockMinimize.mockResolvedValue(undefined);
+    mockUnminimize.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

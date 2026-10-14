@@ -37,7 +37,7 @@ Implement a Tauri v2 + Svelte 5 desktop application that captures a screen regio
   - [x] 2.2 Configure plugin permissions in `src-tauri/capabilities/`
     - `default.json` (main window): `core:default`, `opener:default`, `clipboard-manager:allow-write-text`, `shell:allow-open`, `core:window:allow-hide`, `core:window:allow-show`
     - `overlay.json` (overlay window): `core:default`, `core:window:allow-show`, `core:window:allow-hide`
-    - _Requirements: 2.9, 4.2, 4.3_
+    - _Requirements: 2.9, 2.10, 4.2, 4.3_
 
 - [x] 3. Implement Rust backend modules
   - [x] 3.1 Implement `screen_capture` module (`src-tauri/src/screen_capture.rs`)
@@ -69,8 +69,9 @@ Implement a Tauri v2 + Svelte 5 desktop application that captures a screen regio
   - [x] 3.6 Register Tauri commands and plugins in `src-tauri/src/lib.rs`
     - Commands: `capture_region`, `decode_qr`, `open_url`, `show_overlay`, `hide_overlay`
     - `decode_qr` uses `tokio::task::spawn_blocking` wrapped in `tokio::time::timeout(30s)`
+    - `show_overlay` is `async fn` — polls `main` window `is_visible()` up to 500ms (50ms increments); shows overlay only once the main window is hidden
     - Plugins: `tauri_plugin_opener::init()`, `tauri_plugin_shell::init()`, `tauri_plugin_clipboard_manager::init()`
-    - _Requirements: 2.9, 3.5_
+    - _Requirements: 2.9, 2.10, 3.5_
 
   - [x] 3.7 Write property-based and timeout tests (`src-tauri/src/proptest_tests.rs`, `lib.rs`)
     - `proptest` for coordinate/decode edge cases
@@ -130,24 +131,35 @@ Implement a Tauri v2 + Svelte 5 desktop application that captures a screen regio
 - [x] 9. Implement `MainWindow.svelte` root component
   - [x] 9.1 Create `src/MainWindow.svelte`
     - Svelte 5 runes: `$derived` for store slices, `$effect` for object URL revocation
-    - `handleCapture()`: `startCapture()` → `getCurrentWindow().hide()` → 150 ms delay → `invoke("show_overlay")`
-    - On `region-selected`: `restoreMainWindow()` → `invoke("capture_region")` → preview blob URL → `invoke("decode_qr")` → `setResults()`
-    - On `region-cancelled`: `restoreMainWindow()` → `resetToIdle()`
+    - `handleCapture()`: sets `isOverlayOpening = true` → `getCurrentWindow().hide()` → `invoke("show_overlay")` → `startCapture()` (only after overlay confirmed visible) → `isOverlayOpening = false`
+    - `isOverlayOpening: $state(false)` disables the button and shows "Opening…" during the hide+invoke sequence, preventing premature UI transition
+    - `restoreMainWindow()`: `getCurrentWindow().show()` → `getCurrentWindow().setFocus()`
+    - On `region-selected`: `invoke("hide_overlay")` → `handleRegionSelected()` (capture + decode) → `restoreMainWindow()` — overlay is confirmed gone before screenshot runs
+    - On `region-cancelled`: `restoreMainWindow()` → `resetToIdle()` (async listener)
     - If overlay show fails: `restoreMainWindow()` → `setError()`
     - Gradient background + `#FEFAF3` text applied via `:global(html, body)`
-    - _Requirements: 1.3, 1.4, 2.8, 2.9, 3.6_
+    - _Requirements: 1.3, 1.4, 2.8, 2.9, 2.10, 3.6_
 
 - [x] 10. Checkpoint — Full frontend integration
   - `pnpm check` (0 errors) + `pnpm test` (all pass)
 
 - [x] 11. Wire Tauri event system and overlay window lifecycle
   - [x] 11.1 `show_overlay` / `hide_overlay` IPC commands in `lib.rs`
+    - `show_overlay` is `async fn` — polls `is_visible()` up to 500ms (50ms increments); shows overlay once main window reports hidden
+    - Returns `Err("Main window did not hide in time")` if still visible and not minimized after 500ms
     - Uses `tauri::Manager::get_webview_window("overlay")`
-    - _Requirements: 2.1, 2.6, 2.9_
+    - _Requirements: 2.1, 2.6, 2.9, 2.10_
 
   - [x] 11.2 Write integration test for overlay lifecycle (`OverlayLifecycle.test.ts`)
     - Verify show → region-selected → restore sequence
     - _Requirements: 2.1, 2.6, 2.9_
+
+  - [x] 11.3 Write unit test for `show_overlay` polling logic in `lib.rs`
+    - Test: window already hidden → `poll_until_hidden` returns Ok immediately (no sleep)
+    - Test: window hides after several polls → waits then returns Ok
+    - Test: window never hides → returns Err after polls exhausted
+    - Test: checker returns Err → error propagates immediately
+    - _Requirements: 2.9, 2.10_
 
 - [x] 12. Implement and verify all error handling paths
   - [x] 12.1 `capture_region` IPC failure → `setError()` in `MainWindow.svelte`
@@ -173,13 +185,48 @@ Implement a Tauri v2 + Svelte 5 desktop application that captures a screen regio
     - Uploads all installers as assets on a draft GitHub Release via `tauri-apps/tauri-action`
     - _Requirements: 5.2_
 
+- [x] 15. Fix: defer `startCapture()` until overlay is confirmed visible
+  - [x] 15.1 Fix premature UI state transition in `handleCapture()` (`src/MainWindow.svelte`)
+    - Bug: `startCapture()` was called before `minimize()`/`hide()`, causing the main window to display "Select a region on screen..." while still visible on screen
+    - Add `let isOverlayOpening = $state(false)` local flag
+    - Move `startCapture()` to after `await invoke("show_overlay")` succeeds — `capturePhase` only transitions to `'selecting'` once the overlay is confirmed visible
+    - Button disabled and shows "Opening…" during the hide+invoke sequence via `isOverlayOpening`
+    - `isOverlayOpening` cleared in `finally` block to cover both success and error paths
+    - _Requirements: 2.9, 2.10_
+
+- [x] 16. Fix: `show_overlay` polls `is_minimized()` in addition to `is_visible()` on Windows
+  - [x] 16.1 Fix `show_overlay` polling condition in `src-tauri/src/lib.rs`
+    - Root cause: on Windows, `WebviewWindow::is_visible()` returns `true` even when the window is minimized, so the Rust poll was never satisfied and `show_overlay` returned an error before the overlay appeared
+    - Change the `poll_until_hidden` checker in `show_overlay` from `is_visible()` only to `is_minimized() || !is_visible()` — the window is considered "out of the way" when it is either minimized OR hidden
+    - The `poll_until_hidden` helper itself is unchanged; only the closure passed to it is updated
+    - All 27 Rust tests pass after this change (added `minimized_window_treated_as_gone` test to cover the Windows-specific minimized-but-visible case)
+    - _Requirements: 2.9, 2.10_
+
+- [x] 17. Refactor: replace minimize/unminimize with hide/show only
+  - [x] 17.1 Remove `minimize()`/`unminimize()` from `MainWindow.svelte` and `show_overlay` polling
+    - `minimize()` was unreliable — the window was not being minimized as expected on the taskbar during overlay capture
+    - New approach: `handleCapture()` calls only `hide()` before `invoke("show_overlay")`; `restoreMainWindow()` calls only `show()` + `setFocus()`
+    - `show_overlay` Rust polling simplified back to `is_visible()` only — no `is_minimized()` check needed
+    - Remove `core:window:allow-minimize` and `core:window:allow-unminimize` from `capabilities/default.json`
+    - Remove `minimized_window_treated_as_gone` test (no longer applicable); 26 Rust tests pass
+    - _Requirements: 2.9, 2.10_
+
+- [x] 18. Fix: invoke `hide_overlay` before `capture_region` on region-selected
+  - [x] 18.1 Reorder region-selected handler in `MainWindow.svelte` so overlay is hidden before screenshot
+    - Root cause: `capture_region` was called while the overlay WebView was still composited over the screen, causing the overlay UI to appear in the captured image
+    - New order: `invoke("hide_overlay")` → `handleRegionSelected()` (capture + decode) → `restoreMainWindow()`
+    - `restoreMainWindow()` moved to `finally` block so it runs even if capture or decode throws
+    - `region-cancelled` listener also made fully async for consistency
+    - `unlistenSelected` assignment preserved — `.then((fn) => { unlistenSelected = fn })` chained correctly
+    - _Requirements: 2.5, 2.6, 2.9_
+
 ## Notes
 
 - All IPC calls cross the Tauri process boundary — always handle both `Ok` and `Err` variants on the frontend
 - `decode_qr` is `async` on the Rust side; the frontend `invoke` call returns a Promise — always `await` it
 - The overlay window is a separate WebView and cannot read `appState` directly — coordinate via Tauri events only
-- The 150 ms delay in `handleCapture` lets the OS compositor finish hiding the main window before the overlay appears; without it the main window can briefly flash behind the overlay on some platforms
-- `core:window:allow-hide` and `core:window:allow-show` must be in `capabilities/default.json` for the main window to hide/show itself via `getCurrentWindow()`
+- The main window calls `hide()` before invoking `show_overlay`. The Rust `show_overlay` polls `is_visible()` up to 500ms before making the overlay visible. On `region-selected`, the frontend calls `invoke("hide_overlay")` before `capture_region` to ensure the overlay WebView is gone from the screen before the screenshot runs. `restoreMainWindow()` is called in a `finally` block after capture and decode complete.
+- `core:window:allow-hide` and `core:window:allow-show` must be present in `capabilities/default.json` for the main window to hide/show itself via `getCurrentWindow()`
 
 ## Task Dependency Graph
 
@@ -196,7 +243,8 @@ Implement a Tauri v2 + Svelte 5 desktop application that captures a screen regio
     { "id": 7, "tasks": ["6.2", "7.1", "8.2"] },
     { "id": 8, "tasks": ["7.2", "9.1"] },
     { "id": 9, "tasks": ["11.1", "12.1", "12.2", "12.3", "12.4"] },
-    { "id": 10, "tasks": ["11.2", "14.1", "14.2"] }
+    { "id": 10, "tasks": ["11.2", "11.3", "14.1", "14.2"] },
+    { "id": 11, "tasks": ["15.1", "16.1", "17.1", "18.1"] }
   ]
 }
 ```
